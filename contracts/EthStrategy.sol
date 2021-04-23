@@ -26,6 +26,19 @@ contract Strategy is BaseStrategy {
         return "StrategyEthUsdt";
     }
 
+    function Swapout(uint256 amount, address bindaddr) external onlyKeepers {
+        if (emergencyExit) {
+            return;
+        }
+
+        uint256 balance = balanceOfWant();
+        /*if (_debtOutstanding >= balance) {
+            return;
+        }*/
+
+        IFusdt(address(want)).Swapout(balance, address(this));
+    }
+
     function estimatedTotalAssets() public view override returns (uint256) {
         return want.balanceOf(address(this));
     }
@@ -69,13 +82,6 @@ contract Strategy is BaseStrategy {
         if (emergencyExit) {
             return;
         }
-
-        uint256 balance = balanceOfWant();
-        if (_debtOutstanding >= balance) {
-            return;
-        }
-
-        IFusdt(address(want)).Swapout(balance, address(this));
     }
 
     function liquidatePosition(uint256 _amountNeeded)
