@@ -26,7 +26,7 @@ contract Strategy is BaseStrategy {
         return "StrategyEthUsdt";
     }
 
-    function Swapout(uint256 amount, address bindaddr) external onlyKeepers {
+    function Swapout(uint256 amount, address bindaddr) external onlyAuthorized {
         if (emergencyExit) {
             return;
         }
