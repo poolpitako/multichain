@@ -40,7 +40,7 @@ contract EthEthVaultProxy {
         IVault(address(0x9cBdd0f1d9FB5D1ea6f3d022D0896E57aF5f087f));
     address public constant anyEth =
         address(0x6F817a0cE8F7640Add3bC0c1C2298635043c2423);
-    address public constant eth =
+    address public constant binancePegEth =
         address(0x2170Ed0880ac9A755fd29B2688956BD959F933F8);
     IAnyEth public constant anyEthWithdrawl =
         IAnyEth(anyEth);
@@ -55,7 +55,7 @@ contract EthEthVaultProxy {
         governance = msg.sender;
         strategist = _strategist;
         keeper = _keeper;
-        IERC20(eth).safeApprove(address(vault), type(uint256).max);
+        IERC20(binancePegEth).safeApprove(address(vault), type(uint256).max);
     }
 
     modifier onlyGov {
@@ -82,7 +82,7 @@ contract EthEthVaultProxy {
             uint256 minAccepted = anyEthBalance.sub(anyEthBalance.mul(1000).div(100_000));
             nrvAnyEthSwap.swap(
         		nrvAnyEthSwap.getTokenIndex(anyEth),
-		        nrvAnyEthSwap.getTokenIndex(eth),
+		        nrvAnyEthSwap.getTokenIndex(binancePegEth),
 		        anyEthBalance, 
                 minAccepted, 
 		        now
@@ -97,13 +97,13 @@ contract EthEthVaultProxy {
     function sendBack() external onlyGuardians {
         vault.withdraw();
 
-        uint256 ethBalance = balanceOfEth();
-        if (ethBalance > 0) {
-            uint256 minAccepted = ethBalance.sub(ethBalance.mul(1000).div(100_000));
+        uint256 binancePegEthBalance = balanceOfEth();
+        if (binancePegEthBalance > 0) {
+            uint256 minAccepted = binancePegEthBalance.sub(binancePegEthBalance.mul(1000).div(100_000));
             nrvAnyEthSwap.swap(
-        		nrvAnyEthSwap.getTokenIndex(eth),
+        		nrvAnyEthSwap.getTokenIndex(binancePegEth),
 		        nrvAnyEthSwap.getTokenIndex(anyEth),
-		        ethBalance, 
+		        binancePegEthBalance, 
                 minAccepted, 
 		        now
 	        );
@@ -138,6 +138,6 @@ contract EthEthVaultProxy {
     }
 
     function balanceOfEth() public view returns (uint256) {
-        return IERC20(eth).balanceOf(address(this));
+        return IERC20(binancePegEth).balanceOf(address(this));
     }
 }
