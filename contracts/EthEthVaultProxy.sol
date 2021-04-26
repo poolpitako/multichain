@@ -106,7 +106,7 @@ contract EthEthVaultProxy {
                 binancePegEthBalance,
                 minAccepted,
                 now
-	        );
+            );
         }
         
         uint256 anyEthBalance = balanceOfAnyEth();
