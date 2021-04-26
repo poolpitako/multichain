@@ -14,15 +14,21 @@ interface IVault {
     function withdraw() external;
 }
 
-contract BscFusdtVaultProxy {
+interface IAnyEth {
+    function Swapout(uint256 amount, address bindaddr) external;
+}
+
+contract EthEthVaultProxy {
     using SafeERC20 for IERC20;
     using Address for address;
 
     IVault public constant vault =
-        IVault(address(0x7Da96a3891Add058AdA2E826306D812C638D87a7));
-    address public constant usdt =
-        address(0xdAC17F958D2ee523a2206206994597C13D831ec7);
-    address public constant fusdtDeposit =
+        IVault(address(0x9cBdd0f1d9FB5D1ea6f3d022D0896E57aF5f087f));
+    address public constant anyEth =
+	address(0x6F817a0cE8F7640Add3bC0c1C2298635043c2423);
+    address public constant eth =
+        address(0x2170ed0880ac9a755fd29b2688956bd959f933f8);
+    address public constant anyEthWithdrawl =
         address(0x533e3c0e6b48010873B947bddC4721b1bDFF9648);
     address public strategist;
     address public keeper;
@@ -33,7 +39,7 @@ contract BscFusdtVaultProxy {
         governance = msg.sender;
         strategist = _strategist;
         keeper = _keeper;
-        IERC20(usdt).safeApprove(address(vault), type(uint256).max);
+        IERC20(eth).safeApprove(address(vault), type(uint256).max);
     }
 
     modifier onlyGov {
@@ -51,18 +57,24 @@ contract BscFusdtVaultProxy {
     }
 
     function name() external view returns (string memory) {
-        return "BscFusdtVaultProxy";
+        return "EthEthVaultProxy";
     }
 
     function deposit() external onlyGuardians {
-        if (balanceOfUsdt() > 0) {
+	if (balanceOfAnyEth() > 0) {
+	    // Swap on nerve
+	}
+
+        if (balanceOfEth() > 0) {
             vault.deposit();
         }
     }
 
     function sendBack() external onlyGuardians {
         vault.withdraw();
-        IERC20(usdt).safeTransfer(fusdtDeposit, balanceOfUsdt());
+
+	// Swap to eth to anyEth
+	// Swapout
     }
 
     function setStrategist(address _strategist) external onlyGov {
@@ -83,7 +95,11 @@ contract BscFusdtVaultProxy {
         pendingGovernance = _pendingGovernance;
     }
 
-    function balanceOfUsdt() public view returns (uint256) {
-        return IERC20(usdt).balanceOf(address(this));
+    function balanceOfAnyEth() public view returns (uint256) {
+        return IERC20(anyEth).balanceOf(address(this));
+    }
+
+    function balanceOfEth() public view returns (uint256) {
+        return IERC20(eth).balanceOf(address(this));
     }
 }
