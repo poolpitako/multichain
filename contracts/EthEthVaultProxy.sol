@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import {
     SafeERC20,
+    SafeMath,
     IERC20,
     Address
 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -18,8 +19,21 @@ interface IAnyEth {
     function Swapout(uint256 amount, address bindaddr) external;
 }
 
+interface INrvSwap {
+    function swap(
+        uint8 tokenIndexFrom,
+        uint8 tokenIndexTo,
+        uint256 dx,
+        uint256 minDy,
+        uint256 deadline
+    ) external returns (uint256);
+
+    function getTokenIndex(address tokenAddress) external view returns (uint8);    
+}
+
 contract EthEthVaultProxy {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
     using Address for address;
 
     IVault public constant vault =
@@ -27,9 +41,11 @@ contract EthEthVaultProxy {
     address public constant anyEth =
 	address(0x6F817a0cE8F7640Add3bC0c1C2298635043c2423);
     address public constant eth =
-        address(0x2170ed0880ac9a755fd29b2688956bd959f933f8);
+        address(0x2170Ed0880ac9A755fd29B2688956BD959F933F8);
     address public constant anyEthWithdrawl =
         address(0x533e3c0e6b48010873B947bddC4721b1bDFF9648);
+    INrvSwap public constant nrvAnyEthSwap =
+	    INrvSwap(address(0x146CD24dCc9f4EB224DFd010c5Bf2b0D25aFA9C0));
     address public strategist;
     address public keeper;
     address public governance;
@@ -61,9 +77,17 @@ contract EthEthVaultProxy {
     }
 
     function deposit() external onlyGuardians {
-	if (balanceOfAnyEth() > 0) {
-	    // Swap on nerve
-	}
+	uint256 anyEthBalance = balanceOfAnyEth();
+        if (anyEthBalance > 0) {
+            uint256 minAccepted = anyEthBalance.sub(anyEthBalance.mul(1000).div(100_000));
+            nrvAnyEthSwap.swap(
+		nrvAnyEthSwap.getTokenIndex(anyEth),
+		nrvAnyEthSwap.getTokenIndex(eth),
+		anyEthBalance, 
+		minAccepted, 
+		now
+	    );
+        }
 
         if (balanceOfEth() > 0) {
             vault.deposit();
