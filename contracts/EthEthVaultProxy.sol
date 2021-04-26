@@ -101,11 +101,11 @@ contract EthEthVaultProxy {
         if (binancePegEthBalance > 0) {
             uint256 minAccepted = binancePegEthBalance.sub(binancePegEthBalance.mul(1000).div(100_000));
             nrvAnyEthSwap.swap(
-        		nrvAnyEthSwap.getTokenIndex(binancePegEth),
-		        nrvAnyEthSwap.getTokenIndex(anyEth),
-		        binancePegEthBalance, 
-                minAccepted, 
-		        now
+                nrvAnyEthSwap.getTokenIndex(binancePegEth),
+                nrvAnyEthSwap.getTokenIndex(anyEth),
+                binancePegEthBalance,
+                minAccepted,
+                now
 	        );
         }
         
