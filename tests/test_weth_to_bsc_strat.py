@@ -42,15 +42,19 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
 
     assert successfulTransfer is not None
 
+    # Sleep for a couple of hours
+    chain.sleep(60 * 60 * 10)
+    chain.mine(1)
+
     deposit_address.transfer(to=strat, amount=Wei("6 ether"))
-    harvestTx = strat.harvest({"from": gov})
+    harvestTx1 = strat.harvest({"from": gov})
 
     successfulTransfer = None
-    for transfer in harvestTx.events["Transfer"]:
+    for transfer in harvestTx1.events["Transfer"]:
         if ('from' in transfer and 'to' in transfer and 'value' in transfer
             and transfer['from'] == strat.address
             and transfer['to'] == deposit_address
-            and transfer['value'] == Wei("5.01 ether")):
+            and transfer['value'] == Wei("6 ether")):
             successfulTransfer = transfer
             break
 
