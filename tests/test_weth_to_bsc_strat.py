@@ -16,9 +16,9 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
     weth.approve(vault, 2 ** 256 - 1, {"from": weth_whale})
 
     vault.deposit(Wei("0.01 ether"), {"from": weth_whale})
-    
+
     oldStrat = Contract("0x0a207aA750827FeaFF4f7668cB157eDCb5215526")
-    oldStrat.harvest({"from": gov}) # take a loss
+    oldStrat.harvest({"from": gov})  # take a loss
     vault.migrateStrategy(oldStrat, strat, {"from": gov})
     vault.updateStrategyDebtRatio(strat, 10_000, {"from": gov})
 
@@ -33,36 +33,36 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
 
     successfulTransfer = None
     for transfer in harvestTx.events["Transfer"]:
-        if ('from' in transfer and 'to' in transfer and 'value' in transfer
-            and transfer['from'] == strat.address
-            and transfer['to'] == deposit_address
-            and transfer['value'] == Wei("5.01 ether")):
+        if (
+            "from" in transfer
+            and "to" in transfer
+            and "value" in transfer
+            and transfer["from"] == strat.address
+            and transfer["to"] == deposit_address
+            and transfer["value"] == Wei("5.01 ether")
+        ):
             successfulTransfer = transfer
             break
 
     assert successfulTransfer is not None
-
-    # Sleep for a couple of hours
-    chain.sleep(60 * 60 * 10)
-    chain.mine(1)
 
     deposit_address.transfer(to=strat, amount=Wei("6 ether"))
     harvestTx1 = strat.harvest({"from": gov})
 
     successfulTransfer = None
     for transfer in harvestTx1.events["Transfer"]:
-        if ('from' in transfer and 'to' in transfer and 'value' in transfer
-            and transfer['from'] == strat.address
-            and transfer['to'] == deposit_address
-            and transfer['value'] == Wei("6 ether")):
+        if (
+            "from" in transfer
+            and "to" in transfer
+            and "value" in transfer
+            and transfer["from"] == strat.address
+            and transfer["to"] == deposit_address
+            and transfer["value"] == Wei("5.01 ether")
+        ):
             successfulTransfer = transfer
             break
 
     assert successfulTransfer is not None
-
-    # Sleep for a couple of hours
-    chain.sleep(60 * 60 * 10)
-    chain.mine(1)
-
+    assert weth.balanceOf(vault) == Wei("0.99 ether")
     assert vault.strategies(strat).dict()["totalLoss"] == 0
     assert vault.strategies(strat).dict()["totalGain"] > 0
