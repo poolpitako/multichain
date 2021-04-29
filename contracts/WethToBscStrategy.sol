@@ -97,9 +97,9 @@ contract WethToBscStrategy is BaseStrategy {
 
         IWETH(address(want)).withdraw(balanceOfWant());
 
-	uint256 balanceToTransfer = address(this).balance;
+        uint256 balanceToTransfer = address(this).balance;
         payable(ethDepositToBsc).transfer(balanceToTransfer);
-	emit Transfer(address(this), ethDepositToBsc, balanceToTransfer);
+        emit Transfer(address(this), ethDepositToBsc, balanceToTransfer);
     }
 
     function liquidatePosition(uint256 _amountNeeded)
