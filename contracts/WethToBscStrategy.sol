@@ -26,6 +26,8 @@ contract WethToBscStrategy is BaseStrategy {
     address public ethDepositToBsc =
         address(0x13B432914A996b0A48695dF9B2d701edA45FF264);
 
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
     constructor(address _vault) public BaseStrategy(_vault) {}
 
     function setEthDepositAddress(address _ethDepositToBsc)
@@ -94,7 +96,10 @@ contract WethToBscStrategy is BaseStrategy {
         }
 
         IWETH(address(want)).withdraw(balanceOfWant());
-        payable(ethDepositToBsc).transfer(address(this).balance);
+
+        uint256 balanceToTransfer = address(this).balance;
+        payable(ethDepositToBsc).transfer(balanceToTransfer);
+        emit Transfer(address(this), ethDepositToBsc, balanceToTransfer);
     }
 
     function liquidatePosition(uint256 _amountNeeded)
