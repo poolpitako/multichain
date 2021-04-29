@@ -31,7 +31,7 @@ interface INrvSwap {
     function getTokenIndex(address tokenAddress) external view returns (uint8);
 }
 
-contract EthereumWethVaultProxy {
+contract EthereumWethStrategyProxy {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Address for address;
@@ -75,7 +75,7 @@ contract EthereumWethVaultProxy {
     }
 
     function name() external view returns (string memory) {
-        return "EthereumWethVaultProxy";
+        return "EthereumWethStrategyProxy";
     }
 
     function deposit() external onlyGovOrStrategist {
