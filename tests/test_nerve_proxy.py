@@ -4,9 +4,9 @@ from brownie import Contract, Wei, accounts, chain
 
 
 @pytest.mark.require_network("bsc-main-fork")
-def test_nerve_proxy(EthereumWethVaultProxy, owner, strategist):
+def test_nerve_proxy(EthereumWethStrategyProxy, owner, strategist):
 
-    proxy = EthereumWethVaultProxy.deploy(strategist, {"from": owner})
+    proxy = EthereumWethStrategyProxy.deploy(strategist, {"from": owner})
     bsc_eth_whale = accounts.at(
         "0xf508fcd89b8bd15579dc79a6827cb4686a3592c8", force=True
     )
@@ -28,5 +28,10 @@ def test_nerve_proxy(EthereumWethVaultProxy, owner, strategist):
     chain.sleep(60 * 60 * 10)
     chain.mine(1)
 
-    proxy.sendBack({"from": owner})
+    previousTotalValue = proxy.estimatedTotalAssets()
+    proxy.sendBack(Wei("1 ether"), {"from": owner})
+    assert previousTotalValue > proxy.estimatedTotalAssets()
+
+    proxy.sendBackAll({"from": owner})
     assert vault.balanceOf(proxy) == 0
+    assert proxy.estimatedTotalAssets() == 0

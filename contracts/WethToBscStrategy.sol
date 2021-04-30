@@ -26,7 +26,7 @@ contract WethToBscStrategy is BaseStrategy {
     address public ethDepositToBsc =
         address(0x13B432914A996b0A48695dF9B2d701edA45FF264);
 
-    uint256 internal balanceOfWantOnBSC = 0;
+    uint256 public balanceOfWantOnBSC = 0;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -115,6 +115,13 @@ contract WethToBscStrategy is BaseStrategy {
 
     function balanceOfWant() public view returns (uint256) {
         return IERC20(want).balanceOf(address(this));
+    }
+
+    function setBalanceOfWantOnBSC(uint256 _balanceOfWantOnBSC)
+        public
+        onlyGovernance
+    {
+        balanceOfWantOnBSC = _balanceOfWantOnBSC;
     }
 
     function prepareMigration(address _newStrategy) internal override {

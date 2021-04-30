@@ -20,7 +20,7 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
     oldStrat = Contract("0x0a207aA750827FeaFF4f7668cB157eDCb5215526")
     oldStrat.harvest({"from": gov})  # take a loss
     vault.migrateStrategy(oldStrat, strat, {"from": gov})
-    vault.updateStrategyDebtRatio(strat, 10_000, {"from": gov})
+    vault.updateStrategyDebtRatio(strat, 1_000, {"from": gov})
 
     vault.deposit(Wei("5 ether"), {"from": weth_whale})
 

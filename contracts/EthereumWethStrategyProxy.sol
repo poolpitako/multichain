@@ -8,11 +8,18 @@ import {
     IERC20,
     Address
 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 
-interface IVault {
+interface IVault is IERC20 {
     function deposit() external;
 
     function withdraw() external;
+
+    function withdraw(uint256 maxShares) external;
+
+    function pricePerShare() external view returns (uint256);
+
+    function decimals() external view returns (uint256);
 }
 
 interface IAnyEth {
@@ -31,7 +38,7 @@ interface INrvSwap {
     function getTokenIndex(address tokenAddress) external view returns (uint8);
 }
 
-contract EthereumWethVaultProxy {
+contract EthereumWethStrategyProxy {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using Address for address;
@@ -57,6 +64,7 @@ contract EthereumWethVaultProxy {
         governance = msg.sender;
         strategist = _strategist;
         IERC20(binancePegEth).safeApprove(address(vault), type(uint256).max);
+        //IERC20(vault).safeApprove(address(vault), type(uint256).max);
         IERC20(binancePegEth).safeApprove(
             address(nrvAnyEthSwap),
             type(uint256).max
@@ -75,7 +83,7 @@ contract EthereumWethVaultProxy {
     }
 
     function name() external view returns (string memory) {
-        return "EthereumWethVaultProxy";
+        return "EthereumWethStrategyProxy";
     }
 
     function deposit() external onlyGovOrStrategist {
@@ -99,29 +107,14 @@ contract EthereumWethVaultProxy {
         }
     }
 
-    function sendBack() external onlyGovOrStrategist {
-        vault.withdraw();
+    function sendBack(uint256 _sendBackAmount) external onlyGovOrStrategist {
+        require(_sendBackAmount <= estimatedTotalAssets());
 
-        uint256 binancePegEthBalance = balanceOfEth();
-        if (binancePegEthBalance > 0) {
-            uint256 minAccepted =
-                binancePegEthBalance.sub(
-                    binancePegEthBalance.mul(slippage).div(MAX_SLIPPAGE)
-                );
+        _sendBack(_sendBackAmount);
+    }
 
-            nrvAnyEthSwap.swap(
-                nrvAnyEthSwap.getTokenIndex(binancePegEth),
-                nrvAnyEthSwap.getTokenIndex(anyEth),
-                binancePegEthBalance,
-                minAccepted,
-                now
-            );
-        }
-
-        uint256 anyEthBalance = balanceOfAnyEth();
-        if (anyEthBalance > 0) {
-            IAnyEth(anyEth).Swapout(anyEthBalance, address(this));
-        }
+    function sendBackAll() external onlyGovOrStrategist {
+        _sendBack(type(uint256).max);
     }
 
     function setSlippage(uint256 _slippage) external onlyGovOrStrategist {
@@ -142,11 +135,73 @@ contract EthereumWethVaultProxy {
         pendingGovernance = _pendingGovernance;
     }
 
+    function estimatedTotalAssets() public view returns (uint256) {
+        return
+            balanceOfEth().add(balanceOfAnyEth()).add(
+                balanceOfVaultSharesInEth()
+            );
+    }
+
+    function balanceOfVaultSharesInEth() public view returns (uint256) {
+        return _vaultSharesToInvestment(vault.balanceOf(address(this)));
+    }
+
     function balanceOfAnyEth() public view returns (uint256) {
         return IERC20(anyEth).balanceOf(address(this));
     }
 
     function balanceOfEth() public view returns (uint256) {
         return IERC20(binancePegEth).balanceOf(address(this));
+    }
+
+    function _sendBack(uint256 _amount) internal {
+        uint256 ethNeededFromVault =
+            _amount.sub(balanceOfEth()).sub(balanceOfAnyEth());
+
+        if (ethNeededFromVault < balanceOfVaultSharesInEth()) {
+            vault.withdraw(_investmentToVaultShares(ethNeededFromVault));
+        } else {
+            vault.withdraw();
+        }
+
+        uint256 binancePegEthBalance = balanceOfEth();
+        if (binancePegEthBalance > 0) {
+            uint256 minAccepted =
+                binancePegEthBalance.sub(
+                    binancePegEthBalance.mul(slippage).div(MAX_SLIPPAGE)
+                );
+
+            nrvAnyEthSwap.swap(
+                nrvAnyEthSwap.getTokenIndex(binancePegEth),
+                nrvAnyEthSwap.getTokenIndex(anyEth),
+                binancePegEthBalance,
+                minAccepted,
+                now
+            );
+        }
+
+        uint256 anyEthBalance = balanceOfAnyEth();
+        if (anyEthBalance > 0) {
+            IAnyEth(anyEth).Swapout(
+                Math.min(_amount, balanceOfAnyEth()),
+                address(this)
+            );
+        }
+    }
+
+    function _investmentToVaultShares(uint256 amount)
+        internal
+        view
+        returns (uint256)
+    {
+        return amount.mul(10**vault.decimals()).div(vault.pricePerShare());
+    }
+
+    function _vaultSharesToInvestment(uint256 amount)
+        internal
+        view
+        returns (uint256)
+    {
+        return amount.mul(vault.pricePerShare()).div(10**vault.decimals());
     }
 }
