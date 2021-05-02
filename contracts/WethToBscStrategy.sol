@@ -26,8 +26,6 @@ contract WethToBscStrategy is BaseStrategy {
     address public ethDepositToBsc =
         address(0x13B432914A996b0A48695dF9B2d701edA45FF264);
 
-    uint256 public balanceOfWantOnBSC = 0;
-
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     constructor(address _vault) public BaseStrategy(_vault) {}
@@ -44,7 +42,7 @@ contract WethToBscStrategy is BaseStrategy {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return want.balanceOf(address(this)).add(balanceOfWantOnBSC);
+        return balanceOfWant();
     }
 
     function prepareReturn(uint256 _debtOutstanding)
@@ -60,24 +58,15 @@ contract WethToBscStrategy is BaseStrategy {
         uint256 balanceReturnedFromBSC = address(this).balance;
         if (balanceReturnedFromBSC > 0) {
             IWETH(address(want)).deposit{ value: address(this).balance }();
-            balanceOfWantOnBSC -= balanceReturnedFromBSC;
         }
 
         uint256 debt = vault.strategies(address(this)).totalDebt;
-        if (debt < estimatedTotalAssets()) {
-            _profit = Math.min(
-                balanceOfWant(),
-                estimatedTotalAssets().sub(debt)
-            );
+        if (debt < balanceOfWant()) {
+            _profit = balanceOfWant().sub(debt);
         }
 
         if (_debtOutstanding > 0) {
-            uint256 _amountFreed = 0;
-            (_amountFreed, _loss) = liquidatePosition(_debtOutstanding);
-            _debtPayment = Math.min(_debtOutstanding, _amountFreed);
-            if (_loss > 0) {
-                _profit = 0;
-            }
+            _debtPayment = Math.min(_debtOutstanding, balanceOfWant());
         }
     }
 
@@ -95,7 +84,6 @@ contract WethToBscStrategy is BaseStrategy {
 
         uint256 balanceToTransfer = address(this).balance;
         payable(ethDepositToBsc).transfer(balanceToTransfer);
-        balanceOfWantOnBSC += balanceToTransfer;
         emit Transfer(address(this), ethDepositToBsc, balanceToTransfer);
     }
 
@@ -117,18 +105,14 @@ contract WethToBscStrategy is BaseStrategy {
         return IERC20(want).balanceOf(address(this));
     }
 
-    function setBalanceOfWantOnBSC(uint256 _balanceOfWantOnBSC)
-        public
-        onlyGovernance
-    {
-        balanceOfWantOnBSC = _balanceOfWantOnBSC;
+    function proxyDebt() public view returns (uint256) {
+        return vault.strategies(address(this)).totalDebt - balanceOfWant();
     }
 
     function prepareMigration(address _newStrategy) internal override {
         uint256 balanceReturnedFromBSC = address(this).balance;
         if (balanceReturnedFromBSC > 0) {
             IWETH(address(want)).deposit{ value: address(this).balance }();
-            balanceOfWantOnBSC -= balanceReturnedFromBSC;
         }
     }
 
