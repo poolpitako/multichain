@@ -64,7 +64,6 @@ contract EthereumWethStrategyProxy {
         governance = msg.sender;
         strategist = _strategist;
         IERC20(binancePegEth).safeApprove(address(vault), type(uint256).max);
-        //IERC20(vault).safeApprove(address(vault), type(uint256).max);
         IERC20(binancePegEth).safeApprove(
             address(nrvAnyEthSwap),
             type(uint256).max
@@ -135,23 +134,23 @@ contract EthereumWethStrategyProxy {
         pendingGovernance = _pendingGovernance;
     }
 
-    function estimatedTotalAssets() public view returns (uint256) {
-        return
-            balanceOfEth().add(balanceOfAnyEth()).add(
-                balanceOfVaultSharesInEth()
-            );
-    }
-
-    function balanceOfVaultSharesInEth() public view returns (uint256) {
-        return _vaultSharesToInvestment(vault.balanceOf(address(this)));
-    }
-
     function balanceOfAnyEth() public view returns (uint256) {
         return IERC20(anyEth).balanceOf(address(this));
     }
 
     function balanceOfEth() public view returns (uint256) {
         return IERC20(binancePegEth).balanceOf(address(this));
+    }
+
+    function balanceOfVaultSharesInEth() public view returns (uint256) {
+        return _vaultSharesToInvestment(vault.balanceOf(address(this)));
+    }
+
+    function estimatedTotalAssets() public view returns (uint256) {
+        return
+            balanceOfEth().add(balanceOfAnyEth()).add(
+                balanceOfVaultSharesInEth()
+            );
     }
 
     function _sendBack(uint256 _amount) internal {
