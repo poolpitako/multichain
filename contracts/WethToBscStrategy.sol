@@ -2,7 +2,7 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import { BaseStrategy } from "@yearnvaults/contracts/BaseStrategy.sol";
+import {BaseStrategy} from "@yearnvaults/contracts/BaseStrategy.sol";
 import {
     SafeERC20,
     SafeMath,
@@ -57,7 +57,7 @@ contract WethToBscStrategy is BaseStrategy {
         // If we got eth back from the proxy, let's convert to weth
         uint256 balanceReturnedFromBSC = address(this).balance;
         if (balanceReturnedFromBSC > 0) {
-            IWETH(address(want)).deposit{ value: address(this).balance }();
+            IWETH(address(want)).deposit{value: address(this).balance}();
         }
 
         uint256 debt = vault.strategies(address(this)).totalDebt;
@@ -112,7 +112,7 @@ contract WethToBscStrategy is BaseStrategy {
     function prepareMigration(address _newStrategy) internal override {
         uint256 balanceReturnedFromBSC = address(this).balance;
         if (balanceReturnedFromBSC > 0) {
-            IWETH(address(want)).deposit{ value: address(this).balance }();
+            IWETH(address(want)).deposit{value: address(this).balance}();
         }
     }
 

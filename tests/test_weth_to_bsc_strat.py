@@ -14,11 +14,11 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
     weth_whale = accounts.at("0x2f0b23f53734252bda2277357e97e1517d6b042a", force=True)
     weth = Contract(vault.token())
     weth.approve(vault, 2 ** 256 - 1, {"from": weth_whale})
-    
+
     oldStrat = Contract("0x38B1AAD678D9F47aE9bCB79bd9e4a5975fE3A2bd")
     vault.revokeStrategy(oldStrat, {"from": gov})
     oldStrat.harvest({"from": gov})
-    
+
     vault.addStrategy(strat, 10_000, 0, Wei("2 ether"), 1_000, {"from": gov})
     vault.deposit(Wei("5 ether"), {"from": weth_whale})
 
@@ -69,10 +69,10 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
     vault.updateStrategyDebtRatio(strat, 0, {"from": gov})
     strat.harvest({"from": gov})
 
-    weth.transfer(strat, Wei("3 ether"), {"from": weth_whale})   
+    weth.transfer(strat, Wei("3 ether"), {"from": weth_whale})
     strat.harvest({"from": gov})
 
-    weth.transfer(strat, Wei("1 ether"), {"from": weth_whale})   
+    weth.transfer(strat, Wei("1 ether"), {"from": weth_whale})
     strat.harvest({"from": gov})
 
     assert vault.strategies(strat).dict()["totalLoss"] == 0
