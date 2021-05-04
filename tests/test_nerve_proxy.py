@@ -105,3 +105,12 @@ def test_nerve_proxy_sweep(EthereumWethStrategyProxy, owner, strategist):
     assert vault.balanceOf(proxy) == proxy_vault_balance
     assert fusdt.balanceOf(proxy) == 0
     assert fusdt.balanceOf(owner) == 17728
+
+    with brownie.reverts():
+        proxy.sweep(any_eth, {"from": owner})
+
+    with brownie.reverts():
+        proxy.sweep(bsc_eth, {"from": owner})
+
+    with brownie.reverts():
+        proxy.sweep(vault, {"from": owner})
