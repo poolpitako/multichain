@@ -105,10 +105,6 @@ contract WethToBscStrategy is BaseStrategy {
         return IERC20(want).balanceOf(address(this));
     }
 
-    function proxyDebt() public view returns (uint256) {
-        return vault.strategies(address(this)).totalDebt - balanceOfWant();
-    }
-
     function prepareMigration(address _newStrategy) internal override {
         uint256 balanceReturnedFromBSC = address(this).balance;
         if (balanceReturnedFromBSC > 0) {

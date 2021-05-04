@@ -153,19 +153,16 @@ contract EthereumWethStrategyProxy {
             );
     }
 
-    function migrate(address _newStrategy) external onlyGov {
+    function migrate(address _newProxy) external onlyGov {
         IERC20(anyEth).safeTransfer(
-            _newStrategy,
+            _newProxy,
             IERC20(anyEth).balanceOf(address(this))
         );
         IERC20(binancePegEth).safeTransfer(
-            _newStrategy,
+            _newProxy,
             IERC20(binancePegEth).balanceOf(address(this))
         );
-        IERC20(vault).safeTransfer(
-            _newStrategy,
-            vault.balanceOf(address(this))
-        );
+        IERC20(vault).safeTransfer(_newProxy, vault.balanceOf(address(this)));
     }
 
     function sweep(address _token) external onlyGov {
