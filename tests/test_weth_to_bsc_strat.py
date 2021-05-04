@@ -15,54 +15,65 @@ def test_weth_to_bsc_strat(WethToBscStrategy):
     weth = Contract(vault.token())
     weth.approve(vault, 2 ** 256 - 1, {"from": weth_whale})
 
-    vault.deposit(Wei("0.01 ether"), {"from": weth_whale})
+    oldStrat = Contract("0x38B1AAD678D9F47aE9bCB79bd9e4a5975fE3A2bd")
+    vault.revokeStrategy(oldStrat, {"from": gov})
+    oldStrat.harvest({"from": gov})
 
-    oldStrat = Contract("0x0a207aA750827FeaFF4f7668cB157eDCb5215526")
-    oldStrat.harvest({"from": gov})  # take a loss
-    vault.migrateStrategy(oldStrat, strat, {"from": gov})
-    vault.updateStrategyDebtRatio(strat, 10_000, {"from": gov})
-
+    vault.addStrategy(strat, 10_000, 0, Wei("2 ether"), 1_000, {"from": gov})
     vault.deposit(Wei("5 ether"), {"from": weth_whale})
 
-    deposit_address = accounts.at(
+    anyswap_deposit_address = accounts.at(
         "0x13B432914A996b0A48695dF9B2d701edA45FF264", force=True
     )
-    prev_balance = deposit_address.balance()
+    anyswap_prev_balance = anyswap_deposit_address.balance()
+    vault_balance_before_harvest = weth.balanceOf(vault)
     harvestTx = strat.harvest({"from": gov})
-    assert deposit_address.balance() > prev_balance
+    assert anyswap_deposit_address.balance() > anyswap_prev_balance
 
-    successfulTransfer = None
+    transfer_value = 0
     for transfer in harvestTx.events["Transfer"]:
         if (
             "from" in transfer
             and "to" in transfer
             and "value" in transfer
             and transfer["from"] == strat.address
-            and transfer["to"] == deposit_address
-            and transfer["value"] == Wei("5.01 ether")
+            and transfer["to"] == anyswap_deposit_address
         ):
-            successfulTransfer = transfer
+            transfer_value = transfer["value"]
             break
 
-    assert successfulTransfer is not None
+    assert transfer_value == Wei("2 ether")
 
-    deposit_address.transfer(to=strat, amount=Wei("6 ether"))
+    vault.deposit(Wei("2 ether"), {"from": weth_whale})
+    vault_balance_before_harvest_1 = weth.balanceOf(vault)
     harvestTx1 = strat.harvest({"from": gov})
+    assert vault.strategies(strat).dict()["totalGain"] == 0
 
-    successfulTransfer = None
+    transfer_value = 0
     for transfer in harvestTx1.events["Transfer"]:
         if (
             "from" in transfer
             and "to" in transfer
             and "value" in transfer
             and transfer["from"] == strat.address
-            and transfer["to"] == deposit_address
-            and transfer["value"] == Wei("5.01 ether")
+            and transfer["to"] == anyswap_deposit_address
         ):
-            successfulTransfer = transfer
+            transfer_value = transfer["value"]
             break
 
-    assert successfulTransfer is not None
-    assert weth.balanceOf(vault) == Wei("0.99 ether")
+    assert transfer_value == Wei("2 ether")
+
+    # this simulates 1 eth being returned from the proxy
+    weth.transfer(strat, Wei("1 ether"), {"from": weth_whale})
+
+    vault.updateStrategyDebtRatio(strat, 0, {"from": gov})
+    strat.harvest({"from": gov})
+
+    weth.transfer(strat, Wei("3 ether"), {"from": weth_whale})
+    strat.harvest({"from": gov})
+
+    weth.transfer(strat, Wei("1 ether"), {"from": weth_whale})
+    strat.harvest({"from": gov})
+
     assert vault.strategies(strat).dict()["totalLoss"] == 0
     assert vault.strategies(strat).dict()["totalGain"] > 0

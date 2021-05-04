@@ -42,7 +42,7 @@ contract WethToBscStrategy is BaseStrategy {
     }
 
     function estimatedTotalAssets() public view override returns (uint256) {
-        return want.balanceOf(address(this));
+        return balanceOfWant();
     }
 
     function prepareReturn(uint256 _debtOutstanding)
@@ -55,33 +55,18 @@ contract WethToBscStrategy is BaseStrategy {
         )
     {
         // If we got eth back from the proxy, let's convert to weth
-        if (address(this).balance > 0) {
+        uint256 balanceReturnedFromBSC = address(this).balance;
+        if (balanceReturnedFromBSC > 0) {
             IWETH(address(want)).deposit{value: address(this).balance}();
         }
 
         uint256 debt = vault.strategies(address(this)).totalDebt;
-        uint256 wantBalance = balanceOfWant();
-
-        // Set profit or loss based on the initial debt
-        if (debt <= wantBalance) {
-            _profit = wantBalance - debt;
-        } else {
-            _loss = debt - wantBalance;
+        if (debt < balanceOfWant()) {
+            _profit = balanceOfWant().sub(debt);
         }
 
-        // Repay debt. Amount will depend if we had profit or loss
         if (_debtOutstanding > 0) {
-            if (_profit >= 0) {
-                _debtPayment = Math.min(
-                    _debtOutstanding,
-                    wantBalance.sub(_profit)
-                );
-            } else {
-                _debtPayment = Math.min(
-                    _debtOutstanding,
-                    wantBalance.sub(_loss)
-                );
-            }
+            _debtPayment = Math.min(_debtOutstanding, balanceOfWant());
         }
     }
 
@@ -120,7 +105,12 @@ contract WethToBscStrategy is BaseStrategy {
         return IERC20(want).balanceOf(address(this));
     }
 
-    function prepareMigration(address _newStrategy) internal override {}
+    function prepareMigration(address _newStrategy) internal override {
+        uint256 balanceReturnedFromBSC = address(this).balance;
+        if (balanceReturnedFromBSC > 0) {
+            IWETH(address(want)).deposit{value: address(this).balance}();
+        }
+    }
 
     function protectedTokens()
         internal
