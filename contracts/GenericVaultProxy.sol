@@ -37,6 +37,7 @@ contract GenericVaultProxy {
     address public keeper;
     address public governance;
     address public pendingGovernance;
+    uint256 public maxLoss;
 
     constructor(address _keeper, address _gov, address _vault) public {
         vault = IVault(_vault);
@@ -44,6 +45,7 @@ contract GenericVaultProxy {
         keeper = _keeper;
         governance = _gov;
         strategist = msg.sender;
+        maxLoss = 1;
         IERC20(want).safeApprove(address(vault), type(uint256).max);
     }
 
@@ -60,6 +62,18 @@ contract GenericVaultProxy {
         );
         _;
     }
+
+    // Move yvDAI funds to a new yVault
+  function migrateToNewDaiYVault(IVault newYVault) external onlyGov {
+      uint256 balanceOfYVault = yVault.balanceOf(address(this));
+      if (balanceOfYVault > 0) {
+          yVault.withdraw(balanceOfYVault, address(this), maxLoss);
+      }
+      investmentToken.safeApprove(address(yVault), 0);
+
+      yVault = newYVault;
+      _depositInvestmentTokenInYVault();
+  }
 
     function name() external view returns (string memory) {
         return "BridgeVaultProxy";
@@ -81,6 +95,9 @@ contract GenericVaultProxy {
     function setPendingGovernance(address _pendingGovernance) external onlyGov {
         pendingGovernance = _pendingGovernance;
     }
+    function setMaxLoss(address _maxLoss) external onlyGuardians {
+        maxLoss = _maxLoss;
+    }
 
     function totalAssets() public view returns (uint256) {
         return _vaultBalance().add(_wantBalance());
@@ -93,7 +110,10 @@ contract GenericVaultProxy {
     }
 
     function sendAllBack() external onlyGuardians {
-        vault.withdraw();
+        uint256 balanceOfYVault = yVault.balanceOf(address(this));
+        if (balanceOfYVault > 0) {
+            yVault.withdraw(balanceOfYVault, address(this), maxLoss);
+        }
         IAny(want).Swapout(_wantBalance(), address(this));
     }
 
@@ -101,7 +121,7 @@ contract GenericVaultProxy {
         uint256 wantBal = _wantBalance();
         if(wantBal < amount){
             uint256 toWithdraw = amount.sub(wantBal);
-            vault.withdraw(toWithdraw.mul(10 ** vault.decimals()).div(vault.pricePerShare()));
+            vault.withdraw(toWithdraw.mul(10 ** vault.decimals()).div(vault.pricePerShare()), address(this), maxLoss);
         }
 
         IAny(want).Swapout(Math.min(_wantBalance(), amount), address(this));
