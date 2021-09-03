@@ -47,6 +47,18 @@ contract Strategy is BaseStrategy {
         return IERC20(want).balanceOf(address(this));
     }
 
+    function setBridge(address _bridge) external onlyGovernance {
+        bridge = _bridge;
+    }
+
+    function setMinSend(uint256 _minSend) external onlyEmergencyAuthorized {
+        minSend = _minSend;
+    }
+
+    function setMaxSend(uint256 _maxSend) external onlyEmergencyAuthorized {
+        maxSend = _maxSend;
+    }
+
     function prepareReturn(uint256 _debtOutstanding)
         internal
         override
