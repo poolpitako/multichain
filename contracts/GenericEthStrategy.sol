@@ -59,6 +59,10 @@ contract Strategy is BaseStrategy {
         maxSend = _maxSend;
     }
 
+    function setFourThreeProtection(bool _protection) external onlyEmergencyAuthorized {
+        fourthreeprotection = _protection;
+    }
+
     function incrementPendingProfit(uint256 _newProfit) external onlyEmergencyAuthorized {
         pendingProfit = pendingProfit.add(_newProfit);
     }
