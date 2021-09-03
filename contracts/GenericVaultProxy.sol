@@ -7,11 +7,17 @@ import {
     IERC20,
     Address
 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IVault {
     function deposit() external;
 
     function withdraw() external;
+    function token() external view returns(address);
+    function decimals() external view returns(uint256);
+    function balanceOf(address) external view returns(uint256);
+    function pricePerShare() external view returns(uint256);
     function withdraw(uint256 amount) external;
 }
 
@@ -22,6 +28,7 @@ interface IAny {
 contract GenericVaultProxy {
     using SafeERC20 for IERC20;
     using Address for address;
+    using SafeMath for uint256;
 
     IVault public vault;
     address public want;
