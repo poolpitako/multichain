@@ -19,6 +19,11 @@ interface IVault {
     function balanceOf(address) external view returns(uint256);
     function pricePerShare() external view returns(uint256);
     function withdraw(uint256 amount) external;
+    function withdraw(
+        uint256 amount,
+        address account,
+        uint256 maxLoss
+    ) external returns (uint256);
 }
 
 interface IAny {
@@ -65,14 +70,14 @@ contract GenericVaultProxy {
 
     // Move yvDAI funds to a new yVault
   function migrateToNewDaiYVault(IVault newYVault) external onlyGov {
-      uint256 balanceOfYVault = yVault.balanceOf(address(this));
+      uint256 balanceOfYVault = vault.balanceOf(address(this));
       if (balanceOfYVault > 0) {
-          yVault.withdraw(balanceOfYVault, address(this), maxLoss);
+          vault.withdraw(balanceOfYVault, address(this), maxLoss);
       }
-      investmentToken.safeApprove(address(yVault), 0);
+      IERC20(want).safeApprove(address(vault), 0);
 
-      yVault = newYVault;
-      _depositInvestmentTokenInYVault();
+      vault = newYVault;
+      vault.deposit();
   }
 
     function name() external view returns (string memory) {
@@ -95,7 +100,7 @@ contract GenericVaultProxy {
     function setPendingGovernance(address _pendingGovernance) external onlyGov {
         pendingGovernance = _pendingGovernance;
     }
-    function setMaxLoss(address _maxLoss) external onlyGuardians {
+    function setMaxLoss(uint256 _maxLoss) external onlyGuardians {
         maxLoss = _maxLoss;
     }
 
@@ -110,9 +115,9 @@ contract GenericVaultProxy {
     }
 
     function sendAllBack() external onlyGuardians {
-        uint256 balanceOfYVault = yVault.balanceOf(address(this));
+        uint256 balanceOfYVault = vault.balanceOf(address(this));
         if (balanceOfYVault > 0) {
-            yVault.withdraw(balanceOfYVault, address(this), maxLoss);
+            vault.withdraw(balanceOfYVault, address(this), maxLoss);
         }
         IAny(want).Swapout(_wantBalance(), address(this));
     }
