@@ -77,6 +77,7 @@ contract GenericVaultProxy {
       IERC20(want).safeApprove(address(vault), 0);
 
       vault = newYVault;
+      IERC20(want).safeApprove(address(vault), type(uint256).max);
       vault.deposit();
   }
 
