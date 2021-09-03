@@ -63,13 +63,8 @@ contract Strategy is BaseStrategy {
         fourthreeprotection = _protection;
     }
 
-    function incrementPendingProfit(uint256 _newProfit) external onlyEmergencyAuthorized {
-        pendingProfit = pendingProfit.add(_newProfit);
-    }
-
-    //for use if a mistake is made
-    function clearPendingProfit() external onlyEmergencyAuthorized {
-        pendingProfit = 0;
+    function setPendingProfit(uint256 _pendingProfit) external onlyEmergencyAuthorized {
+        pendingProfit = _pendingProfit;
     }
 
     function prepareReturn(uint256 _debtOutstanding)
