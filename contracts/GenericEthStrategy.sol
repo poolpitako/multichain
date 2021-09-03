@@ -59,6 +59,15 @@ contract Strategy is BaseStrategy {
         maxSend = _maxSend;
     }
 
+    function incrementPendingProfit(uint256 _newProfit) external onlyEmergencyAuthorized {
+        pendingProfit = pendingProfit.add(_newProfit);
+    }
+
+    //for use if a mistake is made
+    function clearPendingProfit() external onlyEmergencyAuthorized {
+        pendingProfit = 0;
+    }
+
     function prepareReturn(uint256 _debtOutstanding)
         internal
         override
@@ -137,6 +146,25 @@ contract Strategy is BaseStrategy {
         if(fourthreeprotection){
             require(_amountNeeded == _liquidatedAmount, "fourthreeprotection");
         }
+    }
+
+    //simplified harvest function
+    function harvestTrigger(uint256 gasCost) public override view returns (bool) {
+        
+        StrategyParams memory params = vault.strategies(address(this));
+
+        // Should not trigger if strategy is not activated
+        if (params.activation == 0) return false;
+
+        // Check for profits and losses
+        uint256 wantBal = _wantBalance();
+        bool harvest;
+        if(wantBal > debtThreshold){
+            harvest = vault.debtOutstanding() >= debtThreshold;
+            harvest = pendingProfit >= debtThreshold;
+        }
+
+        return harvest;
     }
 
 
