@@ -81,7 +81,7 @@ contract GenericVaultProxy {
       vault.deposit();
   }
 
-    function name() external view returns (string memory) {
+    function name() external pure returns (string memory) {
         return "BridgeVaultProxy";
     }
 

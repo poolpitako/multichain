@@ -35,6 +35,10 @@ contract Strategy is BaseStrategy {
         return "BridgeStrategy";
     }
 
+    function delegatedAssets() external view override returns (uint256) {
+        return totalDebt();
+    }
+
     function estimatedTotalAssets() public view override returns (uint256) {
         return totalDebt().add(pendingProfit);
     }
