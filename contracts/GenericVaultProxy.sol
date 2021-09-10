@@ -152,7 +152,7 @@ contract GenericVaultProxy {
         IAny(want).Swapout(Math.min(_wantBalance(), amount), address(this));
     }
 
-    //sweep function in case bridge breaks and we are trapped
+    //sweep function in case we get extra tokens sent
     function sweep(address token, uint256 amount) external onlyGov {
         assert(token != want && token != address(vault));
         IERC20(token).safeTransfer(governance, amount);
