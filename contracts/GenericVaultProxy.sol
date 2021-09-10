@@ -43,19 +43,27 @@ contract GenericVaultProxy {
     address public governance;
     address public pendingGovernance;
     uint256 public maxLoss;
+    uint256 public dustThreshold;
 
-    constructor(address _keeper, address _gov, address _vault) public {
+    constructor(address _keeper, address _gov, address _vault, uint256 _dustThreshold) public {
         vault = IVault(_vault);
         want = vault.token();
         keeper = _keeper;
         governance = _gov;
         strategist = msg.sender;
+        dustThreshold = _dustThreshold;
         maxLoss = 1;
         IERC20(want).safeApprove(address(vault), type(uint256).max);
     }
 
     modifier onlyGov {
         require(msg.sender == governance);
+        _;
+    }
+
+    modifier onlyManagers {
+        require(msg.sender == strategist ||
+                msg.sender == governance);
         _;
     }
 
@@ -82,7 +90,7 @@ contract GenericVaultProxy {
   }
 
     function name() external pure returns (string memory) {
-        return "BridgeVaultProxy";
+        return "BridgeVaultProxyV2";
     }
 
     function _wantBalance() internal view returns (uint256){
@@ -101,7 +109,13 @@ contract GenericVaultProxy {
     function setPendingGovernance(address _pendingGovernance) external onlyGov {
         pendingGovernance = _pendingGovernance;
     }
-    function setMaxLoss(uint256 _maxLoss) external onlyGuardians {
+    function setKeeper(address _keeper) external onlyManagers {
+        keeper = _keeper;
+    }
+    function setStrategist(address _strategist) external onlyManagers {
+        strategist = _strategist;
+    }
+    function setMaxLoss(uint256 _maxLoss) external onlyManagers {
         maxLoss = _maxLoss;
     }
 
@@ -109,13 +123,18 @@ contract GenericVaultProxy {
         return _vaultBalance().add(_wantBalance());
     }
 
-    function deposit() external onlyGuardians {
+    //to mimic harvest on normal strats
+    function harvest() external onlyGuardians {
         if (_wantBalance() > 0) {
             vault.deposit();
         }
     }
 
-    function sendAllBack() external onlyGuardians {
+    function harvestTrigger(uint256 callCost) public view returns (bool) {
+        return _wantBalance() > dustThreshold;
+    }
+
+    function sendAllBack() external onlyManagers {
         uint256 balanceOfYVault = vault.balanceOf(address(this));
         if (balanceOfYVault > 0) {
             vault.withdraw(balanceOfYVault, address(this), maxLoss);
@@ -123,7 +142,7 @@ contract GenericVaultProxy {
         IAny(want).Swapout(_wantBalance(), address(this));
     }
 
-    function sendWantBack(uint256 amount) external onlyGuardians {
+    function sendWantBack(uint256 amount) external onlyManagers {
         uint256 wantBal = _wantBalance();
         if(wantBal < amount){
             uint256 toWithdraw = amount.sub(wantBal);
@@ -135,7 +154,21 @@ contract GenericVaultProxy {
 
     //sweep function in case bridge breaks and we are trapped
     function sweep(address token, uint256 amount) external onlyGov {
+        assert(token != want && token != address(vault));
         IERC20(token).safeTransfer(governance, amount);
+    }
+
+    function migrate(address newStrategy) external onlyGov {
+        uint256 balanceWant = _wantBalance();
+
+        if(balanceWant > 0){
+            IERC20(want).safeTransfer(newStrategy, balanceWant);
+        }
+        uint256 ytokens = vault.balanceOf(address(this));
+        if(ytokens >0){
+            IERC20(address(vault)).safeTransfer(newStrategy, ytokens);
+        }
+        
     }
 
 }
